@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decktale — Turn Slide Decks into Studio-Quality Narrated Videos</title>
+  <meta name="description" content="Compiler for presentations: turn Quarto Reveal.js and Markdown slide decks into timed, high-definition narrated videos with neural TTS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 28, 45, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.3);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --code-bg: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 20% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 80% 25%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navbar */
+    header {
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(9, 13, 22, 0.8);
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 72px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.35rem;
+      color: #fff;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: white;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 96px 0 64px;
+      text-align: center;
+    }
+
+    .badge-announcement {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: 3.6rem;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      max-width: 960px;
+      margin: 0 auto 24px;
+      background: linear-gradient(180deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+
+    /* Demo Visual Grid */
+    .demo-window {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      text-align: left;
+    }
+
+    .window-header {
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .window-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 8px;
+    }
+
+    .code-panel {
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      line-height: 1.7;
+      border-right: 1px solid var(--card-border);
+      background: #0b1120;
+    }
+
+    .syntax-front { color: #f43f5e; }
+    .syntax-heading { color: #38bdf8; font-weight: bold; }
+    .syntax-comment { color: #64748b; font-style: italic; }
+    .syntax-directive { color: #a855f7; font-weight: bold; }
+    .syntax-string { color: #34d399; }
+
+    .video-panel {
+      padding: 24px;
+      background: #080d1a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .slide-render {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .slide-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+
+    .slide-bullet {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slide-bullet::before {
+      content: "•";
+      color: var(--accent);
+      font-size: 1.2rem;
+    }
+
+    .player-controls {
+      margin-top: 24px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid var(--card-border);
+    }
+
+    .subtitle-bar {
+      font-size: 0.9rem;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 14px;
+      border-radius: 6px;
+      color: #fef08a;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .audio-timeline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      width: 48%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+
+    /* Features Section */
+    .features {
+      padding: 100px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 64px;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(12px);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Waitlist Section */
+    .waitlist-section {
+      padding: 80px 0 120px;
+      text-align: center;
+    }
+
+    .waitlist-box {
+      background: linear-gradient(135deg, rgba(22, 28, 45, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 24px;
+      padding: 64px 40px;
+      max-width: 760px;
+      margin: 0 auto;
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), 0 0 32px var(--primary-glow);
+    }
+
+    .waitlist-box h2 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .waitlist-box p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .waitlist-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-field {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .select-field {
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .form-success {
+      display: none;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      padding: 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-top: 16px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 48px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    @media (max-width: 900px) {
+      .hero h1 { font-size: 2.6rem; }
+      .demo-window { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <div class="container nav">
+      <a href="#" class="logo">
+        <div class="logo-badge">D</div>
+        <span>decktale</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#architecture">Architecture</a>
+        <a href="https://github.com/decktale" target="_blank" rel="noopener">GitHub</a>
+        <a href="#waitlist" class="btn btn-primary">Join Waitlist</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="badge-announcement">
+        🚀 Phase 1b Active — CRAN Release (v0.1.0) in Progress
+      </div>
+      <h1>Turn Slide Decks into Studio-Quality Narrated Videos</h1>
+      <p>
+        Write slides in Quarto or Markdown. Decktale compiles them into timed, high-definition videos with synchronized animations, neural voiceover, and automated subtitles.
+      </p>
+      <div class="hero-actions">
+        <a href="#waitlist" class="btn btn-primary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Get Early Access
+        </a>
+        <a href="https://github.com/decktale" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 14px 24px; font-size: 1.05rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <!-- Live Pipeline Demo Component -->
+      <div class="demo-window" id="architecture">
+        <!-- Editor View -->
+        <div class="code-panel">
+          <div class="window-header">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+            <span class="window-title">slides.qmd — Quarto Presentation</span>
+          </div>
+          <pre style="margin-top: 16px;"><code><span class="syntax-front">---
+title: "Distributed Systems"
+format: revealjs
+---</span>
+
+<span class="syntax-heading">## Consensus Algorithms</span>
+
+* Raft leader election
+* Paxos state replication
+* Viewstamped transactions
+
+<span class="syntax-comment">::: {.notes}
+Let's begin by discussing how distributed 
+nodes elect a consensus leader.</span>
+<span class="syntax-directive">{{pause 1.2s}}</span>
+<span class="syntax-comment">Notice how heartbeats prevent split-brain states.
+:::</span></code></pre>
+        </div>
+
+        <!-- Rendered Video View -->
+        <div class="video-panel">
+          <div class="window-header">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+            <span class="window-title">output.mp4 — Compiled Video Output (48kHz Stereo)</span>
+          </div>
+          <div class="slide-render">
+            <div class="slide-title">Consensus Algorithms</div>
+            <div class="slide-bullet">Raft leader election</div>
+            <div class="slide-bullet">Paxos state replication</div>
+            <div class="slide-bullet">Viewstamped transactions</div>
+          </div>
+          <div class="player-controls">
+            <div class="subtitle-bar">
+              "Let's begin by discussing how distributed nodes elect a consensus leader."
+            </div>
+            <div class="audio-timeline">
+              <span>00:14</span>
+              <div class="progress-track">
+                <div class="progress-fill"></div>
+              </div>
+              <span>00:29</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>Built for Technical Presentations</h2>
+        <p>Eliminate re-recordings, mismatched voiceovers, and tedious video editing. Treat video like compiled code.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3>Presentation as Code</h3>
+          <p>Write standard Quarto Reveal.js or Markdown decks. Code chunks, formulas, and diagrams update your video automatically upon commit.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Zero Cumulative Drift</h3>
+          <p>Decodes voice to 48 kHz uncompressed PCM. Video frames round on cumulative sample boundaries so audio and slides stay locked to the exact frame.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎙️</div>
+          <h3>Multi-Engine Neural Voices</h3>
+          <p>Pluggable TTS strategy supporting OpenAI, ElevenLabs, Azure Speech, Amazon Polly, Kokoro (offline neural), and Sarvam AI for Indic languages.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎛️</div>
+          <h3>Broadcast-Grade Audio</h3>
+          <p>Two-pass EBU R128 loudness normalization (-16 LUFS integrated, -1.5 dBTP) built directly into the assembly pipeline.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Synchronized Subtitles</h3>
+          <p>Automated WebVTT and SubRip (.srt) generation matching exact narration timings, with optional burned-in caption rendering.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>CLI & Upcoming Studio GUI</h3>
+          <p>Pure CLI compiler for CI/CD automation and scripts, paired with a visual desktop studio coming for educators and content creators.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Early Access Waitlist -->
+  <section class="waitlist-section" id="waitlist">
+    <div class="container">
+      <div class="waitlist-box">
+        <h2>Join the Early Access Waitlist</h2>
+        <p>We are rolling out early builds of the Decktale compiler and desktop Studio to educators, technical speakers, and course creators.</p>
+        
+        <form class="waitlist-form" id="waitlistForm" onsubmit="handleWaitlist(event)">
+          <div class="form-row">
+            <input type="email" class="input-field" id="emailInput" placeholder="Enter your work or university email" required>
+            <select class="select-field" id="roleSelect" required>
+              <option value="" disabled selected>Select your role</option>
+              <option value="educator">Educator / Professor</option>
+              <option value="devrel">Technical Speaker / DevRel</option>
+              <option value="creator">Course Creator / Trainer</option>
+              <option value="engineer">Software Engineer</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding: 14px 20px; font-size: 1rem;">
+            Request Early Access
+          </button>
+        </form>
+
+        <div class="form-success" id="formSuccess">
+          ✓ Thank you! You have been added to the priority waitlist. We will reach out shortly with preview access.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://github.com/decktale" target="_blank" rel="noopener">GitHub Organization</a>
+        <a href="https://github.com/rsquaredacademy/decktale" target="_blank" rel="noopener">R Package</a>
+        <a href="https://pypi.org/project/decktale/" target="_blank" rel="noopener">PyPI (decktale)</a>
+      </div>
+      <p>&copy; 2026 Decktale Ecosystem. Built with passion for reproducible technical education.</p>
+    </div>
+  </footer>
+
+  <script>
+    function handleWaitlist(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      const role = document.getElementById('roleSelect').value;
+      
+      // Store in localStorage for persistence
+      const submissions = JSON.parse(localStorage.getItem('decktale_waitlist') || '[]');
+      submissions.push({ email, role, date: new Date().toISOString() });
+      localStorage.setItem('decktale_waitlist', JSON.stringify(submissions));
+
+      document.getElementById('waitlistForm').style.display = 'none';
+      document.getElementById('formSuccess').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
